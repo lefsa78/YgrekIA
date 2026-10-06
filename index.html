@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ygrek IA — Générateur d'images IA dans tous les styles</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+        --bg: #f4f6fb; --panel: #ffffff; --panel-2: #eef2f9; --border: #dde3ee;
+        --ink: #1a2030; --ink-dim: #6a7488; --ink-faint: #a8b0c0;
+        --success: #2d8a4e; --error: #c0392b; --warn: #d4a017; --info: #4a6cf7;
+        --accent: #6a4cff; --radius: 14px;
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        background: var(--bg); color: var(--ink); min-height: 100vh;
+        padding: 1.2rem 1rem 6rem; font-size: 15px; line-height: 1.5;
+        max-width: 950px; margin: 0 auto;
+    }
+    header { margin-bottom: 1.2rem; text-align: center; }
+    h1 { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.2rem;
+         background: linear-gradient(135deg, #6a4cff, #ff61a6, #ffcc00);
+         -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .subtitle { font-size: 0.8rem; color: var(--ink-dim); font-style: italic; }
+
+    .toast {
+        position: fixed; top: 1.5rem; left: 50%;
+        transform: translateX(-50%) translateY(-120px);
+        background: var(--ink); color: #fff;
+        padding: 0.85rem 1.4rem; border-radius: 10px;
+        font-size: 0.85rem; font-weight: 600;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        z-index: 1000; opacity: 0;
+        transition: transform 0.35s, opacity 0.35s;
+        max-width: 90vw; text-align: center;
+    }
+    .toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--error); }
+    .toast.warn { background: var(--warn); }
+
+    .info-banner {
+        background: #eef2ff; border-left: 4px solid var(--accent);
+        padding: 0.85rem 1rem; border-radius: 10px;
+        font-size: 0.8rem; color: #3a3a5c;
+        margin-bottom: 1rem; line-height: 1.5;
+    }
+    .info-banner strong { color: var(--ink); }
+
+    .api-panel {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 1rem 1.1rem;
+        margin-bottom: 1rem;
+    }
+    .api-panel.ok { border-color: var(--success); }
+    .api-key-input {
+        width: 100%; padding: 0.85rem 1rem;
+        border-radius: 8px; border: 1px solid var(--border);
+        background: var(--panel-2); color: var(--ink);
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        font-size: 0.85rem; margin-bottom: 0.6rem;
+    }
+    .api-key-input:focus { outline: none; border-color: var(--accent); }
+    .api-save-btn {
+        width: 100%; padding: 0.8rem 1.2rem;
+        border-radius: 8px; border: none;
+        background: var(--accent); color: #fff;
+        font-size: 0.9rem; font-weight: 700; font-family: inherit;
+        cursor: pointer; margin-bottom: 0.6rem;
+    }
+    .api-save-btn:active { transform: scale(0.98); }
+    .api-status-line {
+        font-size: 0.75rem; padding: 0.55rem 0.85rem;
+        border-radius: 6px; margin-bottom: 0.5rem;
+        display: flex; align-items: center; gap: 0.5rem;
+        background: var(--panel-2); color: var(--ink-dim);
+    }
+    .api-status-line.ok { background: #e3f5e9; color: var(--success); font-weight: 600; }
+    .api-status-line .status-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--ink-faint);
+    }
+    .api-status-line.ok .status-dot { background: var(--success); }
+    .api-hint { font-size: 0.72rem; color: var(--ink-dim); margin-top: 0.4rem; }
+    .api-hint a { color: var(--accent); text-decoration: underline; }
+    .stat-line {
+        font-size: 0.72rem; color: var(--ink-dim); margin-top: 0.5rem;
+        padding: 0.4rem 0.6rem; background: var(--panel-2); border-radius: 6px;
+        display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.3rem;
+    }
+    .wake-status {
+        font-size: 0.72rem; padding: 0.5rem 0.7rem;
+        border-radius: 6px; margin-top: 0.4rem;
+        display: flex; justify-content: space-between; align-items: center;
+        background: #eef4ff; color: var(--info);
+        flex-wrap: wrap; gap: 0.4rem;
+    }
+    .wake-status.active { background: #e3f5e9; color: var(--success); }
+    .wake-status button {
+        background: transparent; border: 1px solid currentColor;
+        color: inherit; padding: 0.25rem 0.6rem; border-radius: 6px;
+        font-size: 0.68rem; cursor: pointer; font-family: inherit;
+    }
+
+    .mode-tabs {
+        display: flex; gap: 0.5rem; margin-bottom: 1rem;
+    }
+    .mode-tab {
+        flex: 1; padding: 0.9rem 0.7rem; border-radius: 10px;
+        border: 2px solid var(--border); background: var(--panel);
+        text-align: center; cursor: pointer; user-select: none;
+        transition: all 0.15s;
+    }
+    .mode-tab:hover { border-color: var(--accent); }
+    .mode-tab.active {
+        background: var(--accent); color: #fff; border-color: var(--accent);
+        box-shadow: 0 4px 16px rgba(106,76,255,0.3);
+    }
+    .mode-tab .mode-icon { font-size: 1.4rem; display: block; margin-bottom: 0.2rem; }
+    .mode-tab .mode-title { font-size: 0.85rem; font-weight: 700; }
+    .mode-tab .mode-desc { font-size: 0.65rem; opacity: 0.75; }
+
+    .upload-zone {
+        border: 2px dashed var(--border); border-radius: var(--radius);
+        padding: 2rem 1rem; text-align: center; cursor: pointer;
+        transition: all 0.2s; margin-bottom: 1rem;
+        background: var(--panel);
+    }
+    .upload-zone:hover { border-color: var(--accent); background: var(--panel-2); }
+    .upload-zone.loading { pointer-events: none; opacity: 0.6; }
+    .upload-zone input[type="file"] { display: none; }
+    .upload-icon { font-size: 2.2rem; margin-bottom: 0.6rem; color: var(--accent); }
+    .upload-text { font-size: 0.95rem; color: var(--ink); margin-bottom: 0.2rem; font-weight: 600; }
+    .upload-hint { font-size: 0.75rem; color: var(--ink-dim); }
+
+    .images-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+        gap: 0.5rem; margin-bottom: 1rem;
+    }
+    .image-card {
+        position: relative; border-radius: 8px; overflow: hidden;
+        border: 2px solid var(--border); background: #f0f0f0;
+        aspect-ratio: 1/1;
+    }
+    .image-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .image-card .remove-btn {
+        position: absolute; top: 4px; right: 4px;
+        background: rgba(0,0,0,0.7); color: #fff; border: none;
+        width: 22px; height: 22px; border-radius: 50%; font-size: 11px;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+
+    .section {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: var(--radius); margin-bottom: 1rem;
+        overflow: hidden;
+    }
+    .section-header {
+        padding: 0.9rem 1.1rem; cursor: pointer; user-select: none;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .section-header:hover { background: var(--panel-2); }
+    .section-title {
+        font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--ink-dim); font-weight: 700;
+    }
+    .section-title .badge {
+        display: inline-block; margin-left: 0.4rem; padding: 0.1rem 0.5rem;
+        background: var(--accent); color: #fff; border-radius: 10px;
+        font-size: 0.65rem;
+    }
+    .section-title .badge.soft { background: var(--info); }
+    .section-header .chevron {
+        font-size: 0.7rem; color: var(--ink-faint); transition: transform 0.2s;
+    }
+    .section.open .section-header .chevron { transform: rotate(180deg); }
+    .section-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+    .section.open .section-body { max-height: 8000px; }
+    .section-content { padding: 0 1.1rem 1.1rem; }
+
+    .prompt-main {
+        width: 100%; padding: 0.85rem 1rem;
+        border-radius: 8px; border: 1px solid var(--border);
+        background: var(--panel-2); color: var(--ink);
+        font-family: inherit; font-size: 0.9rem;
+        min-height: 100px; resize: vertical; line-height: 1.5;
+    }
+    .prompt-main:focus { outline: none; border-color: var(--accent); }
+    .prompt-main-hint {
+        font-size: 0.72rem; color: var(--ink-dim);
+        margin-top: 0.5rem; line-height: 1.4;
+    }
+
+    .categories-tabs {
+        display: flex; flex-wrap: wrap; gap: 0.4rem;
+        margin-bottom: 1rem;
+    }
+    .cat-tab {
+        padding: 0.5rem 0.9rem; border-radius: 20px;
+        border: 1px solid var(--border); background: var(--panel-2);
+        font-size: 0.75rem; font-weight: 600;
+        cursor: pointer; user-select: none;
+        transition: all 0.15s;
+    }
+    .cat-tab:hover { border-color: var(--accent); }
+    .cat-tab.active {
+        background: var(--accent); color: #fff; border-color: var(--accent);
+    }
+
+    .styles-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.5rem;
+        min-height: 100px;
+    }
+    .style-card {
+        padding: 0.75rem 0.85rem; border-radius: 10px;
+        border: 2px solid var(--border); background: var(--panel-2);
+        cursor: pointer; transition: all 0.15s;
+        display: flex; align-items: center; gap: 0.55rem;
+    }
+    .style-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+    .style-card.selected {
+        background: var(--accent); color: #fff;
+        border-color: var(--accent);
+        box-shadow: 0 6px 20px rgba(106,76,255,0.35);
+    }
+    .style-card .style-emoji { font-size: 1.3rem; flex-shrink: 0; }
+    .style-card .style-name { font-size: 0.82rem; font-weight: 700; line-height: 1.2; }
+    .style-card .style-desc { font-size: 0.65rem; opacity: 0.7; margin-top: 0.1rem; }
+
+    .control-row { margin-bottom: 0.9rem; }
+    .control-label {
+        display: block; font-size: 0.72rem; color: var(--ink-dim);
+        margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.06em;
+        font-weight: 700;
+    }
+    select {
+        width: 100%; padding: 0.7rem 0.9rem; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--panel-2);
+        color: var(--ink); font-family: inherit; font-size: 0.88rem;
+    }
+    select:focus { outline: none; border-color: var(--accent); }
+
+    .btn-primary {
+        width: 100%; padding: 1.1rem; border-radius: var(--radius);
+        border: none;
+        background: linear-gradient(135deg, #6a4cff, #ff61a6);
+        color: #fff;
+        font-size: 1rem; font-weight: 800; font-family: inherit;
+        cursor: pointer; margin-bottom: 1rem;
+        box-shadow: 0 8px 24px rgba(106,76,255,0.35);
+    }
+    .btn-primary:active:not(:disabled) { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+
+    .btn-stop {
+        width: 100%; padding: 0.8rem; border-radius: var(--radius);
+        border: 1px solid var(--border); background: var(--panel);
+        color: var(--error); font-size: 0.85rem; font-weight: 700;
+        font-family: inherit; cursor: pointer; margin-bottom: 1rem;
+        display: none;
+    }
+    .btn-stop.visible { display: block; }
+
+    .queue { margin-top: 1rem; }
+    .queue-summary {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 8px; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem;
+        font-size: 0.78rem; display: flex; justify-content: space-between;
+        align-items: center; flex-wrap: wrap; gap: 0.4rem;
+    }
+    .queue-summary .progress-text { color: var(--accent); font-weight: 700; }
+    .queue-item {
+        display: flex; align-items: center; gap: 0.8rem;
+        padding: 0.7rem 0.8rem; border-radius: 8px;
+        border: 1px solid var(--border); margin-bottom: 0.4rem;
+        background: var(--panel); font-size: 0.82rem;
+    }
+    .queue-item.pending { opacity: 0.5; }
+    .queue-item.creating { border-color: var(--warn); }
+    .queue-item.processing { border-color: var(--accent); }
+    .queue-item.done { border-color: var(--success); }
+    .queue-item.failed { border-color: var(--error); }
+    .queue-item .q-icon { font-size: 1rem; width: 1.5rem; text-align: center; }
+    .queue-item .q-name { flex: 1; font-weight: 600; }
+    .queue-item .q-status { font-size: 0.72rem; color: var(--ink-dim); text-align: right; }
+
+    .gallery { margin-top: 1.5rem; }
+    .gallery-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.8rem;
+    }
+    .gallery-item {
+        border-radius: var(--radius); overflow: hidden;
+        border: 2px solid var(--border); background: #fff;
+        animation: fadeIn 0.4s ease;
+        position: relative;
+    }
+    .gallery-item img {
+        width: 100%; display: block; aspect-ratio: 1/1; object-fit: cover;
+    }
+    .gallery-item .g-caption {
+        padding: 0.4rem 0.6rem; background: var(--panel);
+        font-size: 0.7rem; color: var(--ink-dim); font-weight: 600;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .gallery-item .g-download {
+        background: var(--accent); color: #fff; border: none;
+        padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.65rem;
+        cursor: pointer; font-weight: 600;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .status-bar {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: linear-gradient(90deg, #6a4cff, #ff61a6);
+        color: #fff; padding: 0.7rem 1rem;
+        font-size: 0.78rem; font-weight: 600;
+        display: flex; align-items: center; gap: 0.6rem;
+        transform: translateY(100%); transition: transform 0.3s;
+        z-index: 100;
+    }
+    .status-bar.visible { transform: translateY(0); }
+    .status-bar .spinner {
+        width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.3);
+        border-top-color: #fff; border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>✦ Ygrek IA ✦</h1>
+    <p class="subtitle">Génère des images IA dans tous les styles</p>
+</header>
+
+<div class="info-banner">
+    <strong>Deux modes :</strong> <strong>Texte → Image</strong> (décris une scène, l’IA la crée) ou
+    <strong>Image → Image</strong> (transforme ta photo dans un style). Choisis ton style, écris ton prompt, lance.
+</div>
+
+<div class="api-panel" id="api-panel">
+    <input type="password" class="api-key-input" id="api-key-input"
+           placeholder="Collez votre clé API (sk-...)" autocomplete="off" spellcheck="false">
+    <button type="button" class="api-save-btn" id="api-save-btn">Enregistrer la clé</button>
+    <div class="api-status-line" id="api-status-line">
+        <span class="status-dot"></span>
+        <span id="api-status-text">Aucune clé API enregistrée</span>
+    </div>
+    <div class="api-hint">
+        Clé gratuite sur <a href="https://platform.agnes-ai.com" target="_blank">platform.agnes-ai.com</a>
+    </div>
+    <div class="stat-line">
+        <span>📊 Vitesse : <span id="stat-speed">en attente</span></span>
+        <span id="stat-samples">0 génération</span>
+    </div>
+    <div class="wake-status" id="wake-status">
+        <span id="wake-status-text">💤 Veille automatique</span>
+        <button type="button" id="wake-toggle-btn">Garder l'écran allumé</button>
+    </div>
+</div>
+
+<div class="mode-tabs">
+    <div class="mode-tab active" data-mode="txt2img">
+        <span class="mode-icon">✨</span>
+        <div class="mode-title">Texte → Image</div>
+        <div class="mode-desc">Décris ta scène</div>
+    </div>
+    <div class="mode-tab" data-mode="img2img">
+        <span class="mode-icon">🖼️</span>
+        <div class="mode-title">Image → Image</div>
+        <div class="mode-desc">Transforme ta photo</div>
+    </div>
+</div>
+
+<div id="upload-area" class="hidden">
+    <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept="image/*" multiple>
+        <div class="upload-icon">＋</div>
+        <div class="upload-text">Ajoutez vos images</div>
+        <div class="upload-hint">Chacune sera transformée selon le style choisi</div>
+    </div>
+    <div class="images-grid" id="images-grid"></div>
+</div>
+
+<div class="section open" id="section-style">
+    <div class="section-header" data-toggle="section-style">
+        <span class="section-title">🎨 Style <span class="badge">requis</span></span>
+        <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+        <div class="section-content">
+            <div class="categories-tabs" id="categories-tabs"></div>
+            <div class="styles-grid" id="styles-grid"></div>
+        </div>
+    </div>
+</div>
+
+<div class="section open" id="section-prompt">
+    <div class="section-header" data-toggle="section-prompt">
+        <span class="section-title">✍️ Votre prompt <span class="badge soft">recommandé</span></span>
+        <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+        <div class="section-content">
+            <textarea class="prompt-main" id="main-prompt"
+                placeholder="Décrivez ce que vous voulez. Ex :
+
+Texte → Image : « Un samouraï sous les cerisiers en fleurs, lumière dorée »
+
+Image → Image : « Ajoute un chapeau rouge, ciel bleu, ambiance joyeuse »"></textarea>
+            <div class="prompt-main-hint">
+                💡 Ce prompt s’ajoute au style choisi. Laisse vide pour un rendu pur style.
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="section" id="section-tech">
+    <div class="section-header" data-toggle="section-tech">
+        <span class="section-title">⚙️ Réglages techniques</span>
+        <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">
+        <div class="section-content">
+            <div class="control-row">
+                <label class="control-label">Format</label>
+                <select id="aspect-select">
+                    <option value="1:1" selected>Carré (1:1) — réseaux sociaux</option>
+                    <option value="9:16">Portrait (9:16) — stories, reels</option>
+                    <option value="16:9">Paysage (16:9) — bannière, YouTube</option>
+                    <option value="4:5">Portrait classique (4:5) — Instagram</option>
+                </select>
+            </div>
+            <div class="control-row">
+                <label class="control-label">Qualité / résolution</label>
+                <select id="quality-select">
+                    <option value="1024">1K — standard (1024px)</option>
+                    <option value="2048" selected>2K — haute (2048px)</option>
+                    <option value="3072">3K — très haute (3072px)</option>
+                </select>
+            </div>
+            <div class="control-row">
+                <label class="control-label">Nombre de variantes par image</label>
+                <select id="variants-select">
+                    <option value="1" selected>1 variante</option>
+                    <option value="2">2 variantes</option>
+                    <option value="4">4 variantes</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button type="button" class="btn-primary" id="generate-btn" disabled>
+    ✦ Générer les images
+</button>
+
+<button type="button" class="btn-stop" id="stop-btn">
+    ⏹ Arrêter la génération
+</button>
+
+<div class="queue" id="queue" style="display:none;"></div>
+
+<div class="gallery" id="gallery" style="display:none;">
+    <div class="section-title" style="margin-bottom:0.8rem;">Images générées</div>
+    <div class="gallery-grid" id="gallery-grid"></div>
+</div>
+
+<div class="status-bar" id="status-bar">
+    <div class="spinner"></div>
+    <span id="status-text">Préparation…</span>
+</div>
+
+<div class="toast" id="toast">Message</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// CONFIG API — CORRIGÉ selon la documentation Agnes-AI
+// ══════════════════════════════════════════════════════════════════
+const API_BASE = 'https://apihub.agnes-ai.com/v1';
+const MODEL_IMAGE = 'agnes-image-2.0-flash';  // Modèle correct
+
+const TIMING_CACHE_KEY = 'ygrek_timing_cache_v1';
+const API_KEY_STORAGE = 'ygrek_api_key';
+const WAKE_LOCK_PREF = 'ygrek_wakelock';
+const MAX_IMAGE_SIZE = 12 * 1024 * 1024;
+const THUMBNAIL_MAX_WIDTH = 200;
+const MAX_VISIBLE_QUEUE = 30;
+
+// ══════════════════════════════════════════════════════════════════
+// UNIVERS
+// ══════════════════════════════════════════════════════════════════
+const UNIVERSE = {
+    '🎨 Cartoon': [
+        { id: 'simpson', name: 'Les Simpson', emoji: '🍩', desc: 'Jaune, contours',
+          prompt: 'The Simpsons cartoon style, yellow-skinned characters, thick black outlines, flat saturated colors.' },
+        { id: 'pixar', name: 'Pixar 3D', emoji: '✨', desc: '3D lumineux',
+          prompt: 'Pixar-style 3D animation, subsurface scattering, expressive big eyes, cinematic lighting.' },
+        { id: 'disney', name: 'Disney', emoji: '🏰', desc: 'Magique, conte',
+          prompt: 'Classic Disney fairy tale animation, soft rounded shapes, magical sparkling light, pastel colors.' },
+        { id: 'ghibli', name: 'Studio Ghibli', emoji: '🌿', desc: 'Anime poétique',
+          prompt: 'Studio Ghibli anime style, hand-painted watercolor backgrounds, cel-shaded characters, Miyazaki atmosphere.' },
+        { id: 'anime90', name: 'Anime 90s', emoji: '📼', desc: 'Rétro, grain',
+          prompt: '90s anime style, cel shading, retro grain, dramatic eyes, nostalgic aesthetic.' },
+        { id: 'manga-nb', name: 'Manga N&B', emoji: '🖤', desc: 'Encre, trames',
+          prompt: 'Black and white manga, stark ink outlines, screentones, high contrast.' },
+        { id: 'bd-franco', name: 'BD franco-belge', emoji: '📘', desc: 'Ligne claire',
+          prompt: 'Franco-Belgian BD, ligne claire, clean ink outlines, flat vivid colors, Tintin style.' },
+        { id: 'pixel-art', name: 'Pixel Art', emoji: '👾', desc: '8/16 bits',
+          prompt: '8-bit pixel art, visible pixels, limited palette, retro game aesthetic.' }
+    ],
+    '🎬 Cinéma & Jeux': [
+        { id: 'cinematic', name: 'Cinématique', emoji: '🎥', desc: 'Dramatique',
+          prompt: 'Cinematic film look, dramatic lighting, subtle film grain, shallow depth of field, professional color grading.' },
+        { id: 'god-of-war', name: 'God of War', emoji: '🪓', desc: 'Norse, brutal',
+          prompt: 'God of War cinematic, Norse mythology, brutal atmosphere, cold blue amber lighting, fog, snow, epic scale.' },
+        { id: 'elden-ring', name: 'Elden Ring', emoji: '⚔️', desc: 'Dark fantasy',
+          prompt: 'Elden Ring cinematic, dark fantasy, golden tree, dragon, ruined castle, fog, muted gold grey palette.' },
+        { id: 'cyberpunk', name: 'Cyberpunk 2077', emoji: '🌃', desc: 'Néon, chrome',
+          prompt: 'Cyberpunk 2077 cinematic, neon Night City, magenta cyan glow, rain, holograms, Blade Runner atmosphere.' },
+        { id: 'noir', name: 'Film Noir', emoji: '🕵️', desc: 'Ombre, B&W',
+          prompt: 'Film noir, black and white, rain-slicked street, fedora, cigarette smoke, femme fatale.' },
+        { id: 'western', name: 'Western', emoji: '🤠', desc: 'Duel, poussière',
+          prompt: 'Western cinematic, dusty main street, cowboy hat, duel stare, sunset, tumbleweed.' },
+        { id: 'horror', name: 'Horreur', emoji: '👻', desc: 'Saut, ombre',
+          prompt: 'Horror cinematic, dark corridor, flickering light, shadow figure, tense silence.' },
+        { id: 'scifi', name: 'Science-Fiction', emoji: '🛸', desc: 'Futur',
+          prompt: 'Science fiction cinematic, futuristic city, spaceship, holographic UI, epic scale, awe.' }
+    ],
+    '🎨 Artistique': [
+        { id: 'aquarelle', name: 'Aquarelle', emoji: '🎨', desc: 'Couleurs qui coulent',
+          prompt: 'Dreamy watercolor painting, soft bleeding edges, translucent washes, paper texture.' },
+        { id: 'oil', name: 'Peinture à l\'huile', emoji: '🖼️', desc: 'Pinceaux visibles',
+          prompt: 'Classical oil painting, visible impasto brushstrokes, rich textured paint, old master technique.' },
+        { id: 'pop-art', name: 'Pop Art', emoji: '💥', desc: 'Warhol',
+          prompt: 'Pop art style, Andy Warhol influence, bold flat colors, comic book dots, repetition.' },
+        { id: 'surreal', name: 'Surréaliste', emoji: '🌀', desc: 'Rêve, Dali',
+          prompt: 'Surrealist aesthetic, impossible juxtapositions, dreamlike distortions, Salvador Dali influence.' },
+        { id: 'minimal', name: 'Minimaliste', emoji: '⚪', desc: 'Épuré',
+          prompt: 'Minimalist aesthetic, clean composition, negative space, limited palette, refined simplicity.' },
+        { id: 'art-nouveau', name: 'Art Nouveau', emoji: '🌺', desc: 'Courbes, Mucha',
+          prompt: 'Art Nouveau style, Alphonse Mucha influence, flowing curves, ornamental floral patterns, golden frame.' }
+    ],
+    '👤 Portrait': [
+        { id: 'headshot', name: 'Portrait Pro', emoji: '📷', desc: 'LinkedIn, corporate',
+          prompt: 'Professional headshot, soft studio lighting, neutral background, sharp focus on eyes, corporate elegance.' },
+        { id: 'fashion', name: 'Mode Éditorial', emoji: '💃', desc: 'Vogue, glamour',
+          prompt: 'High fashion editorial, Vogue magazine style, dramatic lighting, designer clothing, glamorous pose.' },
+        { id: 'vintage-portrait', name: 'Portrait Vintage', emoji: '📸', desc: 'Sépia, ancien',
+          prompt: 'Vintage portrait, sepia tones, film grain, old photograph aesthetic, classic studio lighting.' },
+        { id: 'fantasy-portrait', name: 'Portrait Fantastique', emoji: '🧝', desc: 'Elfe, magicien',
+          prompt: 'Fantasy character portrait, elf or wizard, ornate costume, magical glow, painterly style.' }
+    ],
+    '🌍 Paysage & Lieux': [
+        { id: 'paris', name: 'Paris', emoji: '🗼', desc: 'Tour Eiffel',
+          prompt: 'Paris, Eiffel Tower, golden hour, café terrace, romance, Seine, accordion atmosphere.' },
+        { id: 'japan', name: 'Japon', emoji: '⛩️', desc: 'Temple, sakura',
+          prompt: 'Japan, torii gate, cherry blossoms, temple, lanterns, Kyoto street, rain.' },
+        { id: 'nyc', name: 'New York', emoji: '🗽', desc: 'Skyline',
+          prompt: 'New York, Manhattan skyline, yellow cabs, steam vents, neon night, rush.' },
+        { id: 'desert', name: 'Désert', emoji: '🏜️', desc: 'Dunes',
+          prompt: 'Desert, rolling dunes, caravan silhouette, sunset, heat waves, vast emptiness.' },
+        { id: 'tropical', name: 'Plage Tropicale', emoji: '🏝️', desc: 'Palmiers',
+          prompt: 'Tropical beach, palm trees, turquoise water, white sand, sunset, paradise.' },
+        { id: 'mountain', name: 'Montagne', emoji: '⛰️', desc: 'Neige, sommet',
+          prompt: 'Mountain, snow peaks, clouds below, sunrise, majesty, alpine air.' },
+        { id: 'safari', name: 'Safari', emoji: '🦁', desc: 'Animaux',
+          prompt: 'Safari, savanna, elephant herd, acacia silhouette, golden light, dust.' },
+        { id: 'venice', name: 'Venise', emoji: '🚤', desc: 'Gondoles',
+          prompt: 'Venice, gondola, canals, reflections, palazzo, romantic twilight.' }
+    ],
+    '🕰️ Époques': [
+        { id: 'prehistory', name: 'Préhistoire', emoji: '🦖', desc: 'Dinosaures',
+          prompt: 'Prehistoric, dinosaurs, volcanoes, jungle, primitive man, epic scale.' },
+        { id: 'egypt', name: 'Égypte Antique', emoji: '🔺', desc: 'Pyramides',
+          prompt: 'Ancient Egypt, pyramids, hieroglyphs, pharaoh, Nile, golden sand, mystery.' },
+        { id: 'greece', name: 'Grèce Antique', emoji: '🏛️', desc: 'Temple',
+          prompt: 'Ancient Greece, marble temple, philosophers, mythology, toga, Mediterranean light.' },
+        { id: 'rome', name: 'Rome Antique', emoji: '🏛️', desc: 'Colisée',
+          prompt: 'Ancient Rome, Colosseum, legion, emperor, toga, sandals, imperial glory.' },
+        { id: 'medieval', name: 'Moyen Âge', emoji: '🏰', desc: 'Château',
+          prompt: 'Medieval, castle, knight, armor, tournament, banners, foggy morning.' },
+        { id: '1920s', name: 'Années 1920', emoji: '🎷', desc: 'Jazz, Art déco',
+          prompt: '1920s, Art Deco, jazz club, flapper dress, champagne, speakeasy, Gatsby vibes.' },
+        { id: '1980s', name: 'Années 1980', emoji: '📼', desc: 'Néon, VHS',
+          prompt: '1980s, neon, VHS grain, synthwave, arcade, fashion, retro-future.' },
+        { id: 'futur', name: 'Futur 2100', emoji: '🌌', desc: 'High-tech',
+          prompt: 'Year 2100, ultra-advanced city, floating cars, AI, holograms, chrome and light.' }
+    ]
+};
+
+// ══════════════════════════════════════════════════════════════════
+// ÉTAT
+// ══════════════════════════════════════════════════════════════════
+const state = {
+    mode: 'txt2img',
+    images: [],
+    isRunning: false,
+    stopRequested: false,
+    queue: [],
+    completed: 0,
+    failed: 0,
+    activeCategory: Object.keys(UNIVERSE)[0],
+    selectedStyle: null,
+    mainPrompt: '',
+    aspect: '1:1',
+    quality: '2048',
+    variants: 1,
+    isLoadingImages: false
+};
+
+// ══════════════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════════════
+let toastTimeout = null;
+function showToast(message, type = 'success', duration = 2500) {
+    const toast = document.getElementById('toast');
+    toast.classList.remove('visible', 'success', 'error', 'warn');
+    void toast.offsetWidth;
+    toast.textContent = message;
+    toast.classList.add(type);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => toast.classList.remove('visible'), duration);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ANTI-VEILLE
+// ══════════════════════════════════════════════════════════════════
+let wakeLockSentinel = null;
+let wakeLockEnabled = false;
+let canvasStream = null;
+let canvasInterval = null;
+
+async function activateWakeLock() {
+    let success = false;
+    if ('wakeLock' in navigator) {
+        try { wakeLockSentinel = await navigator.wakeLock.request('screen'); success = true; } catch (e) {}
+    }
+    if (!success) {
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 2; canvas.height = 2;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 2, 2);
+            canvasStream = canvas.captureStream(1);
+            let toggle = false;
+            canvasInterval = setInterval(() => {
+                toggle = !toggle;
+                ctx.fillStyle = toggle ? '#000' : '#010101';
+                ctx.fillRect(0, 0, 2, 2);
+            }, 1000);
+            const video = document.createElement('video');
+            video.srcObject = canvasStream;
+            video.muted = true; video.playsInline = true;
+            await video.play().catch(() => {});
+            success = true;
+        } catch (e) {}
+    }
+    return success;
+}
+
+async function deactivateWakeLock() {
+    if (wakeLockSentinel) { try { await wakeLockSentinel.release(); } catch (e) {} wakeLockSentinel = null; }
+    if (canvasInterval) { clearInterval(canvasInterval); canvasInterval = null; }
+    if (canvasStream) { try { canvasStream.getTracks().forEach(t => t.stop()); } catch (e) {} canvasStream = null; }
+}
+
+function updateWakeStatus() {
+    const el = document.getElementById('wake-status');
+    const txt = document.getElementById('wake-status-text');
+    const btn = document.getElementById('wake-toggle-btn');
+    el.classList.remove('active');
+    const isActive = wakeLockSentinel !== null || canvasStream !== null;
+    if (wakeLockEnabled && isActive) {
+        el.classList.add('active');
+        txt.textContent = '✅ Écran allumé';
+        btn.textContent = 'Désactiver';
+    } else {
+        txt.textContent = '💤 Veille automatique';
+        btn.textContent = 'Garder l\'écran allumé';
+    }
+}
+
+async function toggleWakeLock() {
+    if (wakeLockEnabled) {
+        wakeLockEnabled = false;
+        await deactivateWakeLock();
+        try { localStorage.setItem(WAKE_LOCK_PREF, '0'); } catch (e) {}
+        showToast('Veille automatique réactivée', 'warn');
+    } else {
+        wakeLockEnabled = true;
+        await activateWakeLock();
+        try { localStorage.setItem(WAKE_LOCK_PREF, '1'); } catch (e) {}
+        showToast('Écran maintenu allumé', 'success');
+    }
+    updateWakeStatus();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CACHE TEMPS
+// ══════════════════════════════════════════════════════════════════
+function loadTimingCache() {
+    try { return JSON.parse(localStorage.getItem(TIMING_CACHE_KEY) || '{}'); }
+    catch (e) { return {}; }
+}
+function recordGenerationTime(key, durationMs) {
+    const cache = loadTimingCache();
+    if (!cache[key]) cache[key] = [];
+    cache[key].push(durationMs);
+    if (cache[key].length > 10) cache[key] = cache[key].slice(-10);
+    try { localStorage.setItem(TIMING_CACHE_KEY, JSON.stringify(cache)); } catch (e) {}
+    updateTimingDisplay();
+}
+function estimateGenerationTime(key) {
+    const cache = loadTimingCache();
+    const samples = cache[key];
+    if (samples && samples.length > 0) {
+        return [...samples].sort((a, b) => a - b)[Math.floor(samples.length / 2)];
+    }
+    return 15000;
+}
+function updateTimingDisplay() {
+    const cache = loadTimingCache();
+    const all = Object.values(cache).flat();
+    const speedEl = document.getElementById('stat-speed');
+    const samplesEl = document.getElementById('stat-samples');
+    if (all.length === 0) {
+        speedEl.textContent = 'en attente';
+        samplesEl.textContent = '0 génération';
+        return;
+    }
+    const avg = all.reduce((a, b) => a + b, 0) / all.length;
+    speedEl.textContent = (avg / 1000).toFixed(1) + 's en moyenne';
+    samplesEl.textContent = all.length + ' génération' + (all.length > 1 ? 's' : '');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// CLÉ API
+// ══════════════════════════════════════════════════════════════════
+function getApiKey() {
+    try { return (localStorage.getItem(API_KEY_STORAGE) || '').trim(); }
+    catch (e) { return ''; }
+}
+function saveApiKey() {
+    const input = document.getElementById('api-key-input');
+    const key = input.value.trim();
+    if (!key) {
+        try { localStorage.removeItem(API_KEY_STORAGE); } catch (e) {}
+        updateApiPanel();
+        showToast('Clé supprimée', 'warn');
+        return;
+    }
+    try {
+        localStorage.setItem(API_KEY_STORAGE, key);
+        updateApiPanel();
+        showToast('Clé API enregistrée ✓', 'success');
+    } catch (e) {
+        showToast('Erreur sauvegarde — utilise GitHub Pages', 'error');
+    }
+}
+function updateApiPanel() {
+    const panel = document.getElementById('api-panel');
+    const input = document.getElementById('api-key-input');
+    const statusLine = document.getElementById('api-status-line');
+    const statusText = document.getElementById('api-status-text');
+    const key = getApiKey();
+    if (key) {
+        panel.classList.add('ok');
+        statusLine.classList.add('ok');
+        statusText.textContent = 'Clé active · ' + key.slice(0, 8) + '…' + key.slice(-4);
+        input.value = key;
+    } else {
+        panel.classList.remove('ok');
+        statusLine.classList.remove('ok');
+        statusText.textContent = 'Aucune clé API enregistrée';
+        input.value = '';
+    }
+    updateGenerateBtn();
+}
+function updateGenerateBtn() {
+    const btn = document.getElementById('generate-btn');
+    const hasKey = !!getApiKey();
+    const hasStyle = !!state.selectedStyle;
+    const hasSource = state.mode === 'txt2img'
+        ? (state.mainPrompt.trim().length > 0)
+        : state.images.length > 0;
+    btn.disabled = !hasKey || !hasStyle || !hasSource || state.isRunning || state.isLoadingImages;
+
+    if (state.isLoadingImages) btn.textContent = 'Chargement… (' + state.images.length + ')';
+    else if (state.isRunning) btn.textContent = 'Génération… (' + (state.completed + state.failed) + '/' + state.queue.length + ')';
+    else if (!hasKey) btn.textContent = 'Ajoutez votre clé API';
+    else if (!hasStyle) btn.textContent = 'Choisissez un style';
+    else if (state.mode === 'txt2img' && !hasSource) btn.textContent = 'Écrivez un prompt';
+    else if (state.mode === 'img2img' && !hasSource) btn.textContent = 'Ajoutez des images';
+    else btn.textContent = '✦ Générer ' + (state.mode === 'img2img' ? state.images.length + ' image' + (state.images.length > 1 ? 's' : '') : state.variants + ' image' + (state.variants > 1 ? 's' : ''));
+}
+
+// ══════════════════════════════════════════════════════════════════
+// UTILITAIRES
+// ══════════════════════════════════════════════════════════════════
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function log(msg) { console.log('[Ygrek] ' + msg); }
+function setStatus(text) {
+    const bar = document.getElementById('status-bar');
+    const txt = document.getElementById('status-text');
+    if (text) { bar.classList.add('visible'); txt.textContent = text; }
+    else bar.classList.remove('visible');
+}
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+}
+function formatEta(seconds) {
+    if (seconds < 60) return Math.round(seconds) + 's';
+    return Math.floor(seconds / 60) + 'm' + (Math.round(seconds % 60) > 0 ? ' ' + Math.round(seconds % 60) + 's' : '');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// IMAGES
+// ══════════════════════════════════════════════════════════════════
+function fileToDataUri(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('Erreur lecture'));
+        reader.readAsDataURL(file);
+    });
+}
+function generateThumbnail(dataUri) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                const ratio = img.height / img.width;
+                canvas.width = THUMBNAIL_MAX_WIDTH;
+                canvas.height = Math.round(THUMBNAIL_MAX_WIDTH * ratio);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            } catch (e) { resolve(dataUri); }
+        };
+        img.onerror = () => resolve(dataUri);
+        img.src = dataUri;
+    });
+}
+async function processOneFile(file) {
+    if (!file.type.startsWith('image/')) return null;
+    if (file.size > MAX_IMAGE_SIZE) return null;
+    try {
+        const dataUri = await fileToDataUri(file);
+        const thumbnail = await generateThumbnail(dataUri);
+        return { file, dataUri, thumbnail, id: Date.now() + Math.random() };
+    } catch (e) { return null; }
+}
+async function handleFiles(files) {
+    const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (!imageFiles.length) return;
+    state.isLoadingImages = true;
+    updateGenerateBtn();
+    setStatus('Chargement…');
+    const BATCH = 5;
+    let processed = 0;
+    for (let i = 0; i < imageFiles.length; i += BATCH) {
+        const batch = imageFiles.slice(i, i + BATCH);
+        const results = await Promise.allSettled(batch.map(f => processOneFile(f)));
+        for (const r of results) {
+            if (r.status === 'fulfilled' && r.value) {
+                state.images.push(r.value);
+                processed++;
+            }
+        }
+        renderImages();
+        setStatus('Chargement… ' + processed + '/' + imageFiles.length);
+    }
+    state.isLoadingImages = false;
+    setStatus(null);
+    updateGenerateBtn();
+}
+function removeImage(id) {
+    state.images = state.images.filter(img => img.id !== id);
+    renderImages();
+    updateGenerateBtn();
+}
+function renderImages() {
+    const grid = document.getElementById('images-grid');
+    grid.innerHTML = state.images.map(img =>
+        '<div class="image-card">' +
+            '<img src="' + (img.thumbnail || img.dataUri) + '" alt="">' +
+            '<button class="remove-btn" data-remove="' + img.id + '">✕</button>' +
+        '</div>'
+    ).join('');
+    grid.querySelectorAll('[data-remove]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeImage(parseFloat(btn.dataset.remove));
+        });
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// RENDU
+// ══════════════════════════════════════════════════════════════════
+function renderCategories() {
+    const container = document.getElementById('categories-tabs');
+    container.innerHTML = Object.keys(UNIVERSE).map(cat =>
+        '<div class="cat-tab ' + (state.activeCategory === cat ? 'active' : '') + '" data-cat="' + esc(cat) + '">' + esc(cat) + '</div>'
+    ).join('');
+    container.querySelectorAll('[data-cat]').forEach(el => {
+        el.addEventListener('click', () => {
+            state.activeCategory = el.dataset.cat;
+            renderCategories();
+            renderStyles();
+        });
+    });
+}
+function renderStyles() {
+    const container = document.getElementById('styles-grid');
+    const styles = UNIVERSE[state.activeCategory] || [];
+    container.innerHTML = styles.map(s =>
+        '<div class="style-card ' + (state.selectedStyle === s.id ? 'selected' : '') + '" data-style="' + s.id + '">' +
+            '<div class="style-emoji">' + s.emoji + '</div>' +
+            '<div>' +
+                '<div class="style-name">' + esc(s.name) + '</div>' +
+                '<div class="style-desc">' + esc(s.desc) + '</div>' +
+            '</div>' +
+        '</div>'
+    ).join('');
+    container.querySelectorAll('[data-style]').forEach(el => {
+        el.addEventListener('click', () => {
+            state.selectedStyle = el.dataset.style;
+            renderStyles();
+            updateGenerateBtn();
+        });
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PROMPT
+// ══════════════════════════════════════════════════════════════════
+const ASPECT_PROMPTS = {
+    '1:1': 'square 1:1 aspect ratio composition',
+    '9:16': 'vertical 9:16 portrait composition, social media story format',
+    '16:9': 'horizontal 16:9 landscape composition, cinematic widescreen',
+    '4:5': 'vertical 4:5 portrait composition, Instagram post format'
+};
+
+function buildPrompt() {
+    let style = null;
+    for (const cat of Object.values(UNIVERSE)) {
+        const found = cat.find(s => s.id === state.selectedStyle);
+        if (found) { style = found; break; }
+    }
+    const parts = [];
+    if (state.mode === 'img2img') {
+        parts.push('Transform this image into the following style while preserving the essential subject and composition:');
+    } else {
+        parts.push('Create a high quality image:');
+    }
+    if (style) parts.push(style.prompt);
+    if (state.mainPrompt && state.mainPrompt.trim()) {
+        parts.push(state.mainPrompt.trim());
+    }
+    parts.push(ASPECT_PROMPTS[state.aspect] || ASPECT_PROMPTS['1:1']);
+    parts.push('No text, no watermarks, no signature, no border.');
+    return parts.join('. ');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// API — CORRIGÉ selon la documentation Agnes-AI
+// ══════════════════════════════════════════════════════════════════
+
+// Mapping des ratios vers les paramètres API
+const ASPECT_TO_API = {
+    '1:1': { size: '1024x1024', ratio: '1:1' },
+    '9:16': { size: '768x1024', ratio: '9:16' },
+    '16:9': { size: '1024x768', ratio: '16:9' },
+    '4:5': { size: '1024x1024', ratio: '4:5' }
+};
+
+async function apiFetch(url, options = {}, label = 'API') {
+    for (let attempt = 0; attempt < 7; attempt++) {
+        if (state.stopRequested) throw new Error('Arrêt demandé');
+        try {
+            const res = await fetch(url, options);
+            if (res.status === 429) {
+                const wait = [15, 30, 45, 60, 90, 120, 180][Math.min(attempt, 6)];
+                setStatus('L\'IA se prépare… (' + wait + 's)');
+                await sleep(wait * 1000);
+                continue;
+            }
+            if (res.status === 503) {
+                const wait = [5, 10, 15, 20, 30, 45][Math.min(attempt, 5)];
+                setStatus('Préparation… (' + wait + 's)');
+                await sleep(wait * 1000);
+                continue;
+            }
+            return res;
+        } catch (e) {
+            if (e.message === 'Arrêt demandé') throw e;
+            const wait = [3, 5, 8, 12, 20, 30][Math.min(attempt, 5)];
+            setStatus('Connexion… (' + wait + 's)');
+            await sleep(wait * 1000);
+        }
+    }
+    return fetch(url, options);
+}
+
+async function createImageTask(prompt, sourceImage) {
+    // Construire le body selon la doc Agnes-AI
+    const aspectConfig = ASPECT_TO_API[state.aspect] || ASPECT_TO_API['1:1'];
+    
+    const body = {
+        model: MODEL_IMAGE,
+        prompt: prompt,
+        size: aspectConfig.size,
+        ratio: aspectConfig.ratio
+    };
+    
+    // Le champ image va dans extra_body selon la doc
+    if (sourceImage) {
+        body.extra_body = {
+            image: [sourceImage],
+            response_format: 'url'
+        };
+    } else {
+        body.extra_body = {
+            response_format: 'url'
+        };
+    }
+
+    const res = await apiFetch(API_BASE + '/images/generations', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + getApiKey(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    }, 'Création');
+
+    if (!res.ok) {
+        const err = await res.text();
+        throw new Error('HTTP ' + res.status + ' — ' + err.slice(0, 200));
+    }
+
+    const data = await res.json();
+    
+    // Parser la réponse selon la doc : data[0].url ou data[0].b64_json
+    if (data.data && data.data.length > 0) {
+        const result = data.data[0];
+        if (result.url) return { url: result.url };
+        if (result.b64_json) return { url: 'data:image/png;base64,' + result.b64_json };
+    }
+    
+    // Fallback pour d'autres formats de réponse
+    if (data.url) return { url: data.url };
+    if (data.image_url) return { url: data.image_url };
+    
+    throw new Error('Pas de résultat retourné: ' + JSON.stringify(data).slice(0, 200));
+}
+
+// Pas besoin de polling pour l'API image — c'est synchrone
+async function generateImage(prompt, sourceImage) {
+    const result = await createImageTask(prompt, sourceImage);
+    return result.url;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// QUEUE
+// ══════════════════════════════════════════════════════════════════
+function renderQueue() {
+    const queueEl = document.getElementById('queue');
+    if (!state.queue.length) { queueEl.style.display = 'none'; return; }
+    queueEl.style.display = 'block';
+    const total = state.queue.length;
+    const done = state.completed + state.failed;
+    let html = '<div class="queue-summary">' +
+        '<span class="progress-text">Progression : ' + done + '/' + total + '</span>' +
+        '<span>' + (done < total ? 'En cours…' : 'Terminé') + '</span>' +
+        '</div>';
+    html += state.queue.slice(0, MAX_VISIBLE_QUEUE).map(item => {
+        let icon = '○', statusText = 'En attente', cls = 'pending';
+        if (item.status === 'creating') { icon = '◐'; statusText = 'Préparation…'; cls = 'creating'; }
+        else if (item.status === 'processing') { icon = '◐'; statusText = item.progress || 'En cours'; cls = 'processing'; }
+        else if (item.status === 'done') { icon = '●'; statusText = 'Terminé'; cls = 'done'; }
+        else if (item.status === 'failed') { icon = '✕'; statusText = 'Échec'; cls = 'failed'; }
+        return '<div class="queue-item ' + cls + '">' +
+            '<div class="q-icon">' + icon + '</div>' +
+            '<div class="q-name">' + esc(item.label) + '</div>' +
+            '<div class="q-status">' + esc(statusText) + '</div>' +
+        '</div>';
+    }).join('');
+    queueEl.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════════════════════════
+// GALERIE
+// ══════════════════════════════════════════════════════════════════
+function addToGallery(imageUrl, label) {
+    const galleryEl = document.getElementById('gallery');
+    const galleryGrid = document.getElementById('gallery-grid');
+    galleryEl.style.display = 'block';
+    const el = document.createElement('div');
+    el.className = 'gallery-item';
+    const src = imageUrl.startsWith('data:') ? imageUrl : imageUrl;
+    el.innerHTML = '<img src="' + src + '" alt="" loading="lazy">' +
+        '<div class="g-caption">' +
+            '<span>' + esc(label) + '</span>' +
+            '<button class="g-download" data-dl="' + esc(src) + '">↓</button>' +
+        '</div>';
+    galleryGrid.appendChild(el);
+    el.querySelector('.g-download').addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = src;
+        a.download = 'ygrek-ia-' + Date.now() + '.png';
+        a.click();
+    });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PIPELINE
+// ══════════════════════════════════════════════════════════════════
+async function runTask(item) {
+    try {
+        item.status = 'creating';
+        item.progress = 'Préparation…';
+        renderQueue();
+
+        const prompt = buildPrompt();
+        item.prompt = prompt;
+
+        log('[' + item.label + '] Création…');
+        item.startTime = Date.now();
+        
+        const imageUrl = await generateImage(prompt, item.sourceImage);
+
+        const elapsed = Date.now() - item.startTime;
+        recordGenerationTime(state.quality, elapsed);
+
+        item.status = 'done';
+        item.imageUrl = imageUrl;
+        state.completed++;
+        renderQueue();
+        updateGenerateBtn();
+        addToGallery(imageUrl, item.label);
+    } catch (e) {
+        if (e.message === 'Arrêt demandé') {
+            item.status = 'failed'; item.progress = 'Arrêté';
+        } else {
+            log('[' + item.label + '] ' + e.message);
+            item.status = 'failed'; item.progress = 'Échec';
+            state.failed++;
+        }
+        renderQueue();
+        updateGenerateBtn();
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// WORKFLOW
+// ══════════════════════════════════════════════════════════════════
+async function startGeneration() {
+    if (state.isRunning) return;
+    if (!getApiKey()) { showToast('Ajoutez votre clé API', 'error'); return; }
+    if (!state.selectedStyle) { showToast('Choisissez un style', 'error'); return; }
+
+    state.mainPrompt = document.getElementById('main-prompt').value.trim();
+
+    if (state.mode === 'txt2img' && !state.mainPrompt) {
+        showToast('Écrivez un prompt pour le mode Texte → Image', 'error');
+        return;
+    }
+    if (state.mode === 'img2img' && state.images.length === 0) {
+        showToast('Ajoutez au moins une image', 'error');
+        return;
+    }
+
+    state.isRunning = true;
+    state.stopRequested = false;
+    state.completed = 0;
+    state.failed = 0;
+
+    // Construire la queue
+    state.queue = [];
+    if (state.mode === 'txt2img') {
+        for (let v = 0; v < state.variants; v++) {
+            state.queue.push({
+                label: 'Variante ' + (v + 1),
+                sourceImage: null,
+                status: 'pending', progress: null,
+                imageUrl: null, startTime: null
+            });
+        }
+    } else {
+        for (let i = 0; i < state.images.length; i++) {
+            const img = state.images[i];
+            for (let v = 0; v < state.variants; v++) {
+                state.queue.push({
+                    label: 'Image ' + (i + 1) + (state.variants > 1 ? ' · v' + (v + 1) : ''),
+                    sourceImage: img.dataUri,
+                    status: 'pending', progress: null,
+                    imageUrl: null, startTime: null
+                });
+            }
+        }
+    }
+
+    document.getElementById('gallery-grid').innerHTML = '';
+    document.getElementById('gallery').style.display = 'none';
+    document.getElementById('stop-btn').classList.add('visible');
+    updateGenerateBtn();
+
+    if (wakeLockEnabled) await activateWakeLock();
+    renderQueue();
+
+    const totalStart = Date.now();
+
+    try {
+        for (let i = 0; i < state.queue.length; i++) {
+            if (state.stopRequested) break;
+            await runTask(state.queue[i]);
+
+            if (i < state.queue.length - 1 && !state.stopRequested) {
+                // Petite pause entre générations
+                for (let r = 2; r > 0; r--) {
+                    if (state.stopRequested) break;
+                    setStatus('Pause… — ' + (i + 2) + '/' + state.queue.length + ' dans ' + r + 's');
+                    await sleep(1000);
+                }
+            }
+        }
+    } catch (e) {
+        log('Erreur globale : ' + e.message);
+    }
+
+    const totalElapsed = (Date.now() - totalStart) / 1000;
+    const summary = state.stopRequested
+        ? 'Arrêté — ' + state.completed + '/' + state.queue.length
+        : '✦ ' + state.completed + '/' + state.queue.length + ' image' + (state.completed > 1 ? 's' : '') + ' en ' + formatEta(totalElapsed) + ' ✦';
+    log(summary);
+    setStatus(summary);
+    await sleep(3000);
+    setStatus(null);
+
+    state.isRunning = false;
+    state.stopRequested = false;
+    document.getElementById('stop-btn').classList.remove('visible');
+    updateGenerateBtn();
+    showToast(state.completed + ' image' + (state.completed > 1 ? 's' : '') + ' générée' + (state.completed > 1 ? 's' : ''), 'success');
+}
+
+function stopGeneration() {
+    if (!state.isRunning) return;
+    state.stopRequested = true;
+    setStatus('Arrêt en cours…');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
+(function init() {
+    // Clé API
+    document.getElementById('api-save-btn').addEventListener('click', saveApiKey);
+    document.getElementById('api-key-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); saveApiKey(); }
+    });
+
+    // Mode tabs
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const mode = tab.dataset.mode;
+            if (mode === state.mode) return;
+            state.mode = mode;
+            document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+            document.getElementById('upload-area').classList.toggle('hidden', mode !== 'img2img');
+            updateGenerateBtn();
+        });
+    });
+
+    // Sections
+    document.querySelectorAll('[data-toggle]').forEach(header => {
+        header.addEventListener('click', () => {
+            document.getElementById(header.dataset.toggle).classList.toggle('open');
+        });
+    });
+
+    // Upload
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('file-input');
+    uploadZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+        handleFiles(e.target.files);
+        fileInput.value = '';
+    });
+
+    // Prompt
+    document.getElementById('main-prompt').addEventListener('input', e => {
+        state.mainPrompt = e.target.value;
+        updateGenerateBtn();
+    });
+
+    // Réglages
+    document.getElementById('aspect-select').addEventListener('change', e => { state.aspect = e.target.value; });
+    document.getElementById('quality-select').addEventListener('change', e => { state.quality = e.target.value; });
+    document.getElementById('variants-select').addEventListener('change', e => { state.variants = parseInt(e.target.value, 10); updateGenerateBtn(); });
+
+    // Boutons
+    document.getElementById('generate-btn').addEventListener('click', startGeneration);
+    document.getElementById('stop-btn').addEventListener('click', stopGeneration);
+    document.getElementById('wake-toggle-btn').addEventListener('click', toggleWakeLock);
+
+    // Wake lock pref
+    try { wakeLockEnabled = localStorage.getItem(WAKE_LOCK_PREF) === '1'; } catch (e) {}
+
+    // Rendu initial
+    updateApiPanel();
+    updateTimingDisplay();
+    updateWakeStatus();
+    renderCategories();
+    renderStyles();
+    renderImages();
+    renderQueue();
+    updateGenerateBtn();
+
+    log('Ygrek IA prêt — ' + Object.values(UNIVERSE).flat().length + ' styles disponibles.');
+})();
+</script>
+
+</body>
+</html>
